@@ -1,0 +1,37 @@
+[
+    {
+        "name": "Kimchi Soup Rice",
+        "type": "Korean",
+        "image": "kimchisoup",
+        "ingredients": ["50g kimchi", "50g tofu", "2 scoop korean spicy paste", "50g tauge", "1 egg"],
+        "steps": ["Mix ingredients", "Cook for 10 minutes until boiled", "Cook for 10 minutes until boiled","Cook for 10 minutes until boiled","Cook for 10 minutes until boiled","Cook for 10 minutes until boiled"]
+    },
+    {
+        "name": "Nasi Lemak",
+        "type": "Local",
+        "image": "nasilemak",
+        "ingredients": ["50g kimchi", "50g tofu", "2 scoop korean spicy paste", "50g tauge", "1 egg"],
+        "steps": ["Mix ingredients", "Cook for 10 minutes until boiled"]
+    },
+    {
+        "name": "Beef Gyudon",
+        "type": "Japanese",
+        "image": "gyudon",
+        "ingredients": ["50g kimchi", "50g tofu", "2 scoop korean spicy paste", "50g tauge", "1 egg"],
+        "steps": ["Mix ingredients", "Cook for 10 minutes until boiled"]
+    },
+    {
+        "name": "Butter Chicken Rice",
+        "type": "Chinese",
+        "image": "butterchicken",
+        "ingredients": ["50g kimchi", "50g tofu", "2 scoop korean spicy paste", "50g tauge", "1 egg"],
+        "steps": ["Mix ingredients", "Cook for 10 minutes until boiled"]
+    },
+    {
+        "name": "Kam Heong Chicken Rice",
+        "type": "Chinese",
+        "image": "kamheong",
+        "ingredients": ["50g kimchi", "50g tofu", "2 scoop korean spicy paste", "50g tauge", "1 egg"],
+        "steps": ["Mix ingredients", "Cook for 10 minutes until boiled"]
+    }
+]
