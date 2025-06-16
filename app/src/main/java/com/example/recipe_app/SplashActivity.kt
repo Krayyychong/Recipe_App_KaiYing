@@ -7,7 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.recipe_app.databinding.ActivitySplashBinding
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
@@ -27,25 +31,33 @@ class SplashActivity : AppCompatActivity() {
             finish()
         }
 
-        //check whether filesDir have these 2 json file or not, if not then only copy to there, if yes then no need
-        val filesDir = this.filesDir
-        val recipesFile = File(filesDir, "recipes.json")
-        if (!recipesFile.exists()) {
-            copyJsonFromAssets(this, "recipes.json")
+        lifecycleScope.launch {
+            val database = RecipeDatabase.getDatabase(applicationContext)
+            //resetDatabase(database) //use it when want to reset the whole app data, remember to comment and uncomment it when neccesary
+            if (database.recipeDao().getAllRecipes().isEmpty()) {
+                //if database empty, delete all data and repopulate
+                populateDatabase(database)
+            }
         }
 
-        val recipeTypesFile = File(filesDir, "recipetypes.json")
-        if (!recipeTypesFile.exists()) {
-            copyJsonFromAssets(this, "recipetypes.json")
-        }
     }
 
-    fun copyJsonFromAssets(context: Context, fileName: String) {
-        val inputStream = context.assets.open(fileName)
-        val outFile = File(context.filesDir, fileName)
-        val outputStream = FileOutputStream(outFile)
-        inputStream.copyTo(outputStream)
-        inputStream.close()
-        outputStream.close()
+    // Function to reset the database by deleting all data
+    private suspend fun resetDatabase(database: RecipeDatabase) {
+        database.recipeDao().deleteAllRecipes() // Delete all recipes
+        database.recipeDao().deleteAllRecipeTypes() // Delete all recipe types
     }
+    private suspend fun populateDatabase(database: RecipeDatabase) {
+        val recipesJson = assets.open("recipes.json").bufferedReader().use { it.readText() }
+        val recipeTypesJson = assets.open("recipetypes.json").bufferedReader().use { it.readText() }
+
+        val recipes: List<RecipeEntity> = Gson().fromJson(recipesJson, object : TypeToken<List<RecipeEntity>>() {}.type)
+        database.recipeDao().insertRecipes(recipes)
+
+        val recipeTypes: List<String> = Gson().fromJson(recipeTypesJson, object : TypeToken<List<String>>() {}.type)
+        // Convert to RecipeTypeEntity objects
+        val recipeTypeEntities = recipeTypes.map { RecipeTypeEntity(it) }
+        database.recipeDao().insertRecipeTypes(recipeTypeEntities)
+    }
+
 }

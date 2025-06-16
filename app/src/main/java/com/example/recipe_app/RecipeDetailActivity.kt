@@ -1,6 +1,8 @@
 package com.example.recipe_app
 
+import android.app.AlertDialog
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
@@ -9,12 +11,15 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
+import kotlinx.coroutines.launch
 
 class RecipeDetailActivity : AppCompatActivity() {
+    private lateinit var recipeDatabase: RecipeDatabase
+    private lateinit var recipeDao: RecipeDao
+    private var recipe: RecipeEntity? = null
 
-    private lateinit var recipe: RecipeData
-    private lateinit var recipeList: MutableList<RecipeData>
     private lateinit var recipeImage: ImageView
     private lateinit var recipeName: TextView
     private lateinit var recipeIngredients: TextView
@@ -22,12 +27,14 @@ class RecipeDetailActivity : AppCompatActivity() {
     private lateinit var editButton: Button
     private lateinit var deleteButton: Button
     private lateinit var backButton: Button
-    private lateinit var editRecipeLauncher: ActivityResultLauncher<Intent>
 
-
-    override fun onCreate(savedInstanceState: Bundle?){
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
+
+        //Initialize Room database
+        recipeDatabase = RecipeDatabase.getDatabase(this)
+        recipeDao = recipeDatabase.recipeDao()
 
         recipeImage = findViewById(R.id.imageRecipeDetail)
         recipeName = findViewById(R.id.recipeName)
@@ -36,92 +43,119 @@ class RecipeDetailActivity : AppCompatActivity() {
         editButton = findViewById(R.id.editRecipeButton)
         deleteButton = findViewById(R.id.deleteRecipeButton)
         backButton = findViewById(R.id.backButton)
-        recipeList = RecipeFileHandling.loadRecipes(this)
 
+        // Get recipe ID from intent
+        val recipeId = intent.getIntExtra("RECIPE_ID", -1)
 
-        // Get recipe data from intent
-        val recipeJson = intent.getStringExtra("RECIPE_DATA")
-        recipe = Gson().fromJson(recipeJson, RecipeData::class.java)
-        recipeList = RecipeFileHandling.loadRecipes(this)
+        if (recipeId != -1) {
+            loadRecipe(recipeId)
+        } else {
+            Toast.makeText(this, "Recipe not found", Toast.LENGTH_SHORT).show()
+            finish()
+        }
 
-        //populate fields from json
-        recipeImage.setImageResource(
-            resources.getIdentifier(recipe.image, "drawable", packageName)
-        )
-        recipeName.text = recipe.name
-        //separate ingredients per line
-        recipeIngredients.text = recipe.ingredients.joinToString("\n")
-        //show steps per line with numbering
-        recipeSteps.text = recipe.steps.mapIndexed{ index, step -> "${index+1}. $step"}.joinToString("\n")
+        setupButtonListeners()
+    }
 
-        editRecipeLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val updatedRecipeJson = result.data?.getStringExtra("UPDATED_RECIPE")
-                if (updatedRecipeJson != null) {
-                    val updatedRecipe = Gson().fromJson(updatedRecipeJson, RecipeData::class.java)
-
-                    //Load current list
-                    recipeList = RecipeFileHandling.loadRecipes(this)
-
-                    //Update recipe in the list
-                    val index = recipeList.indexOfFirst { it.name == recipe.name }
-                    if (index != -1) {
-                        recipeList[index] = updatedRecipe
-                        RecipeFileHandling.saveRecipes(this, recipeList)
-                    }
-
-                    // Update frontend
-                    recipe = updatedRecipe
-                    recipeName.text = recipe.name
-                    recipeIngredients.text = recipe.ingredients.joinToString("\n")
-                    recipeSteps.text = recipe.steps.mapIndexed { i, step -> "${i + 1}. $step" }.joinToString("\n")
+    private fun loadRecipe(recipeId: Int) {
+        lifecycleScope.launch {
+            recipe = recipeDao.getRecipeById(recipeId)
+            recipe?.let {
+                runOnUiThread {
+                    displayRecipe(it)
+                }
+            } ?: run {
+                runOnUiThread {
+                    Toast.makeText(this@RecipeDetailActivity, "Recipe not found", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
             }
         }
+    }
 
-        // edit recipe
-        editButton.setOnClickListener {
-            val intent = Intent(this, EditDetailActivity::class.java)
-            intent.putExtra("RECIPE_DATA",Gson().toJson(recipe))
-            editRecipeLauncher.launch(intent)
-
+    private fun displayRecipe(recipe: RecipeEntity) {
+        // Display image
+        if (recipe.image.isNotEmpty()) {
+            try {
+                if (recipe.image.startsWith("content://")) {
+                    val imageUri = Uri.parse(recipe.image)
+                    recipeImage.setImageURI(imageUri)
+                } else {
+                    val context = applicationContext
+                    val imageResId = context.resources.getIdentifier(recipe.image, "drawable", packageName)
+                    if (imageResId != 0) {
+                        recipeImage.setImageResource(imageResId)
+                    } else {
+                        recipeImage.setImageResource(R.drawable.food)
+                    }
+                }
+            } catch (e: Exception) {
+                recipeImage.setImageResource(R.drawable.food)
+            }
+        } else {
+            recipeImage.setImageResource(R.drawable.food)
         }
 
-        // delete recipe
+        recipeName.text = recipe.name
+        recipeIngredients.text = recipe.ingredients.joinToString("\n")
+        recipeSteps.text = recipe.steps.mapIndexed { index, step ->
+            "${index + 1}. $step"
+        }.joinToString("\n")
+    }
+
+    private fun setupButtonListeners() {
+        editButton.setOnClickListener {
+            recipe?.let {
+                val intent = Intent(this, EditDetailActivity::class.java).apply {
+                    putExtra("RECIPE_ID", it.id)
+                }
+                startActivity(intent)
+            }
+        }
+
         deleteButton.setOnClickListener {
-            //show warn dialog
-            val dialog = android.app.AlertDialog.Builder(this)
+            AlertDialog.Builder(this)
                 .setTitle("Delete Recipe")
                 .setMessage("Are you sure you want to delete this recipe?")
-                .setPositiveButton("Yes") {_, _ ->
-                    //remote current recipe from json file
-                    val index = recipeList.indexOfFirst{it.name == recipe.name}
-                    if(index != -1) {
-                        recipeList.removeAt(index)
-                        RecipeFileHandling.saveRecipes(this, recipeList)
-                        Toast.makeText(this, "Recipe deleted!", Toast.LENGTH_SHORT).show()
-                    }
-                    //return to HomeActivity
-                    val intent = Intent(this, MainActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                }
-                .setNegativeButton("No") {dialogInterface, _ -> dialogInterface.dismiss()} //do nothing
-                .create()
+                .setPositiveButton("Yes") { _, _ ->
+                    lifecycleScope.launch {
+                        val recipeDao = RecipeDatabase.getDatabase(applicationContext).recipeDao()
+                        recipe?.let {
+                            recipeDao.deleteRecipe(it)
+                            val recipeCount = recipeDao.countRecipesByType(it.type)
 
-            dialog.show()
+                            if (recipeCount == 0) {
+                                val recipeTypeEntity = RecipeTypeEntity(it.type)
+                                recipeDao.deleteRecipeType(recipeTypeEntity)
+                            }
+
+                            //notify HomeFragment to refresh the recipe types spinner
+                            val intent = Intent("com.example.recipe_app.RECIPE_DELETED")
+                            sendBroadcast(intent)
+
+                            Toast.makeText(
+                                this@RecipeDetailActivity,
+                                "Recipe deleted!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            finish()
+                        }
+                    }
+                }
+                .setNegativeButton("No") { dialog, _ -> dialog.dismiss() }
+                .show()
         }
 
         backButton.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-            finish() //return to HomeActivity
+            finish()
         }
-
     }
 
     override fun onResume() {
         super.onResume()
+        val recipeId = intent.getIntExtra("RECIPE_ID", -1)
+        if (recipeId != -1) {
+            loadRecipe(recipeId)
+        }
     }
-
 }

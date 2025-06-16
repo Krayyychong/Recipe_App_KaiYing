@@ -33,6 +33,17 @@
 
             </com.google.android.material.imageview.ShapeableImageView>
 
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/addImageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:contentDescription="Edit Image"
+                android:src="@drawable/add_photo_icon"
+                android:tint="@android:color/white"
+                app:layout_constraintBottom_toBottomOf="@id/imageAddRecipe"
+                app:layout_constraintEnd_toEndOf="@id/imageAddRecipe" />
+
             <TextView
                 android:id="@+id/titleAddRecipeName"
                 android:layout_width="match_parent"
