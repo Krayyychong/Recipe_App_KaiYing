@@ -1,5 +1,6 @@
 package com.example.recipe_app
 
+import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -25,12 +26,19 @@ class ItemRecipeAdapter(private var recipes: List<RecipeEntity>, private val onR
         holder.name.text = recipe.name
         holder.ingredients.text = recipe.ingredients.joinToString(", ")
 
-        // Load image based on URI or drawable resource
+        // Check if the image URI is valid
         if (recipe.image.isNotEmpty()) {
-            //Check if the image is a URI (from stimulator gallery)
             if (recipe.image.startsWith("content://")) {
                 val imageUri = Uri.parse(recipe.image)
-                holder.image.setImageURI(imageUri)
+                // Ensure the URI permission is still valid
+                try {
+                    val context = holder.itemView.context
+                    context.contentResolver.takePersistableUriPermission(imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    holder.image.setImageURI(imageUri)
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                    holder.image.setImageResource(R.drawable.food) // Default image in case of error
+                }
             } else {
                 val context = holder.itemView.context
                 val imageResId = context.resources.getIdentifier(recipe.image, "drawable", context.packageName)
@@ -41,12 +49,12 @@ class ItemRecipeAdapter(private var recipes: List<RecipeEntity>, private val onR
                 }
             }
         } else {
-            holder.image.setImageResource(R.drawable.food)
+            holder.image.setImageResource(R.drawable.food) // Default image if no URI is found
         }
 
 
         holder.itemView.setOnClickListener{
-            onRecipeClick(recipe) //pass clicked recipe to handler
+            onRecipeClick(recipe)
         }
     }
 

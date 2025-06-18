@@ -1,19 +1,14 @@
 package com.example.recipe_app
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.recipe_app.databinding.ActivitySplashBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
 class SplashActivity : AppCompatActivity() {
 
@@ -52,9 +47,11 @@ class SplashActivity : AppCompatActivity() {
         val recipeTypesJson = assets.open("recipetypes.json").bufferedReader().use { it.readText() }
 
         val recipes: List<RecipeEntity> = Gson().fromJson(recipesJson, object : TypeToken<List<RecipeEntity>>() {}.type)
+
         database.recipeDao().insertRecipes(recipes)
 
         val recipeTypes: List<String> = Gson().fromJson(recipeTypesJson, object : TypeToken<List<String>>() {}.type)
+
         // Convert to RecipeTypeEntity objects
         val recipeTypeEntities = recipeTypes.map { RecipeTypeEntity(it) }
         database.recipeDao().insertRecipeTypes(recipeTypeEntities)

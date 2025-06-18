@@ -1,6 +1,7 @@
 package com.example.recipe_app
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -130,6 +131,16 @@ class AddRecipeFragment : Fragment() {
         // Convert the drawable resource ID to a URI string
         val defaultImageResId = R.drawable.food
         return Uri.parse("android.resource://${requireContext().packageName}/$defaultImageResId").toString()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            // Permission granted, now we can access the gallery or storage
+            Toast.makeText(requireContext(), "Permission granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), "Permission denied, cannot access images", Toast.LENGTH_SHORT).show()
+        }
     }
 
 

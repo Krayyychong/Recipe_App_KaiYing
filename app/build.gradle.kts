@@ -40,11 +40,11 @@ android {
     }
 
 
-    kapt {
+/*    kapt {
         arguments {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
-    }
+    }*/
 }
 
 dependencies {

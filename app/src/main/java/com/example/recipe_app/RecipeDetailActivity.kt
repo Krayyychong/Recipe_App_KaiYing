@@ -8,11 +8,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 class RecipeDetailActivity : AppCompatActivity() {
